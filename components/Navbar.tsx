@@ -11,12 +11,28 @@ const navItems = [
   { label: "Add New", href: "/books/new" },
 ];
 
+import React from "react";
+
 const Navbar = () => {
   const pathName = usePathname();
   const { user } = useUser();
+  const [scrolled, setScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="w-full fixed z-50 bg-('--bg-primary')">
+    <header
+      className={cn(
+        "w-full fixed z-50 transition-colors",
+        scrolled ? "bg-[var(--bg-primary)] border-b border-[var(--border-subtle)]" : "bg-transparent border-none",
+      )}
+    >
       <div className="wrapper navbar-height py-4 flex justify-between items-center">
         <Link href="/" className="flex gap-0.5 items-center">
           <Image src="/assets/logo.png" alt="Bookify Logo" width={42} height={26} />
