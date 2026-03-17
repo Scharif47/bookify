@@ -1,7 +1,7 @@
 
 const Page = () => {
   return (
-    <h1 className="text-2xl underline">Bookify</h1>
+    <h1 className="text-2xl underline"></h1>
   )
 }
 
