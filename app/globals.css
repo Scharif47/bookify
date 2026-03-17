@@ -777,6 +777,9 @@
   border-radius: 0.75rem !important;
 }
 
+/* In your globals.css or a relevant CSS file */
+/* This targets all buttons inside Clerk's auth components */
+
 .cl-formFieldInput:focus {
   border-color: #212a3b !important;
   box-shadow: var(--shadow-soft), 0 0 0 2px rgba(33, 42, 59, 0.1) !important;
@@ -952,4 +955,10 @@ button[data-variant='unstyled'] *,
   font-weight: 600;
   border-radius: 0.75rem;
   font-size: 1.125rem;
+}
+
+.clerk-sign-in-button,
+[data-clerk-component="SignInButton"] button,
+[data-clerk-component="SignInButton"] a {
+  cursor: pointer !important;
 }
