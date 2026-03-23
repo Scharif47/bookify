@@ -614,10 +614,10 @@
      VOICE SELECTOR COMPONENT
      =========================================== */
   .voice-selector-options {
-    @apply flex gap-4;
+    @apply gap-4;
   }
   .voice-selector-option {
-    @apply flex-1 flex items-center justify-center gap-3 p-4 border border-[var(--border-subtle)] rounded-lg cursor-pointer transition-all;
+    @apply w-full min-h-[84px] flex items-start justify-start gap-3 p-4 border border-[var(--border-subtle)] rounded-lg cursor-pointer transition-all;
     box-shadow: var(--shadow-soft-sm);
 
     &:hover {
@@ -680,7 +680,7 @@
      UPLOAD FORM COMPONENT
      =========================================== */
   .upload-dropzone {
-    @apply flex flex-col items-center justify-center h-[165px] bg-white rounded-[6px] cursor-pointer transition-all;
+    @apply flex flex-col items-center justify-center h-[165px] bg-white rounded-[6px] cursor-pointer transition-all border-2 border-dashed border-[var(--border-medium)] px-4;
 
     &:hover {
       @apply bg-gray-50;
