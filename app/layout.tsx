@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Serif, Mona_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Toaster } from "sonner";
 
 import Navbar from "@/components/Navbar";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({
         <ClerkProvider>
           <Navbar />
           {children}
+          <Toaster />
         </ClerkProvider>
       </body>
     </html>
