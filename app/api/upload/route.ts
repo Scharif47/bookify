@@ -5,10 +5,18 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+
+  if (!blobToken) {
+    return NextResponse.json(
+      { error: "Server misconfiguration: BLOB_READ_WRITE_TOKEN is not set" },
+      { status: 500 },
+    );
+  }
 
   try {
     const jsonResponse = await handleUpload({
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+      token: blobToken,
       body,
       request,
       onBeforeGenerateToken: async () => {
