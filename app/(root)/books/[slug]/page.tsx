@@ -8,8 +8,6 @@ import { getBookBySlug } from "@/lib/actions/book.actions";
 import VapiControls from "@/components/VapiControls";
 import { IBook } from "@/types";
 
-
-
 export default async function BookDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { userId } = await auth();
 
@@ -30,6 +28,7 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ sl
       </Link>
 
       <VapiControls book={book} />
+      {/* Transcript is rendered inside VapiControls (client) to use live state from the hook */}
     </div>
   );
 }
