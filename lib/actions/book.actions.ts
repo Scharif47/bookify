@@ -153,6 +153,8 @@ export const createBook = async (data: CreateBook) => {
 
     const book = await Book.create({ ...data, clerkId: userId, slug, totalSegments: 0 });
 
+    revalidatePath("/");
+
     return {
       success: true,
       data: serializeData(book),
