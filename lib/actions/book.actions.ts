@@ -5,7 +5,11 @@ import { connectToDatabase } from "@/database/mongoose";
 import { escapeRegex, generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
+import BookTranscript from "@/database/models/book-transcript.model";
 import mongoose from "mongoose";
+import { del } from "@vercel/blob";
+import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 
 export const getAllBooks = async (search?: string) => {
   try {
@@ -33,6 +37,48 @@ export const getAllBooks = async (search?: string) => {
       success: false,
       error: e,
     };
+  }
+};
+
+export const deleteBook = async (bookId: string) => {
+  try {
+    await connectToDatabase();
+
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const book = await Book.findById(bookId).lean();
+    if (!book) return { success: false, error: "Book not found" };
+    if (book.clerkId !== userId) return { success: false, error: "Unauthorized" };
+
+    await Promise.all([
+      Book.findByIdAndDelete(bookId),
+      BookSegment.deleteMany({ bookId }),
+      BookTranscript.deleteMany({ bookId }),
+      book.fileBlobKey ? del(book.fileBlobKey) : Promise.resolve(),
+      book.coverBlobKey ? del(book.coverBlobKey) : Promise.resolve(),
+    ]);
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (e) {
+    console.error("Error deleting book", e);
+    return { success: false, error: "Failed to delete book." };
+  }
+};
+
+export const getMyBooks = async () => {
+  try {
+    await connectToDatabase();
+
+    const { userId } = await auth();
+    if (!userId) return { success: false, data: [] };
+
+    const books = await Book.find({ clerkId: userId }).sort({ createdAt: -1 }).lean();
+    return { success: true, data: serializeData(books) };
+  } catch (e) {
+    console.error("Error fetching user books", e);
+    return { success: false, data: [] };
   }
 };
 

@@ -6,11 +6,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Show, SignInButton, UserButton, useClerk, useUser } from "@clerk/nextjs";
 
-const navItems = [
+const publicNavItems = [
   { label: "Library", href: "/" },
   { label: "Add New", href: "/books/new" },
   { label: "Pricing", href: "/subscriptions" },
 ];
+
+const privateNavItems = [{ label: "My Books", href: "/your-books" }];
 
 import React from "react";
 
@@ -43,7 +45,7 @@ const Navbar = () => {
 
         <div className="flex items-center gap-6">
           <nav className="w-fit flex gap-7.5 items-center">
-            {navItems.map(({ label, href }) => {
+            {[...publicNavItems, ...(user ? privateNavItems : [])].map(({ label, href }) => {
               const isActive = pathName === href || (href !== "/" && pathName.startsWith(href));
 
               return (

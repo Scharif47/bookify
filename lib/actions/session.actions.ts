@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/database/mongoose";
 import VoiceSession from "@/database/models/voice-session.model";
 import BookTranscript from "@/database/models/book-transcript.model";
 import { auth } from "@clerk/nextjs/server";
-import { getUserPlan } from "@/lib/subscription.server";
+import { getPlanLimits, getUserPlan } from "@/lib/subscription.server";
 import { PLAN_LIMITS, getCurrentBillingPeriodStart } from "@/lib/subscription-constants";
 
 export const startVoiceSession = async (clerkId: string, bookId: string): Promise<StartSessionResult> => {
@@ -53,6 +53,19 @@ export const startVoiceSession = async (clerkId: string, bookId: string): Promis
   } catch (e) {
     console.error("Error starting voice session", e);
     return { success: false, error: "Failed to start voice session. Please try again later." };
+  }
+};
+
+export const getMaxSessionDuration = async (): Promise<number | null> => {
+  try {
+    const { userId } = await auth();
+    if (!userId) return null;
+
+    const limits = await getPlanLimits();
+    return limits.maxDurationPerSession === Infinity ? null : limits.maxDurationPerSession;
+  } catch (e) {
+    console.error("Error fetching plan limits", e);
+    return null;
   }
 };
 

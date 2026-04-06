@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { IBook, Messages } from "@/types";
 import { ASSISTANT_ID, DEFAULT_VOICE, VOICE_SETTINGS } from "@/lib/constants";
-import { clearBookTranscript, endVoiceSession, getBookTranscript, saveBookTranscript, startVoiceSession } from "@/lib/actions/session.actions";
+import { clearBookTranscript, endVoiceSession, getBookTranscript, getMaxSessionDuration, saveBookTranscript, startVoiceSession } from "@/lib/actions/session.actions";
 import Vapi from "@vapi-ai/web";
 import { getVoice } from "@/lib/utils";
 
@@ -51,10 +51,14 @@ export const useVapi = (book: IBook) => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Load persisted transcript on mount
+  // Load persisted transcript and plan limit on mount
   useEffect(() => {
     getBookTranscript(book._id).then((saved) => {
       if (saved.length > 0) setMessages(saved);
+    });
+    getMaxSessionDuration().then((minutes) => {
+      maxDurationMinutesRef.current = minutes;
+      setMaxDurationMinutes(minutes);
     });
   }, [book._id]);
 

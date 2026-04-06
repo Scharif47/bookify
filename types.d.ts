@@ -87,6 +87,9 @@ export interface BookCardProps {
   readonly author: string;
   readonly coverURL: string;
   readonly slug: string;
+  readonly bookId?: string;
+  readonly canDelete?: boolean;
+  readonly plain?: boolean;
 }
 
 export interface Messages {

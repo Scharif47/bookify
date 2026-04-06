@@ -649,6 +649,15 @@
       transform: translateY(-4px);
     }
   }
+  .book-card-plain:hover {
+    transform: none;
+  }
+  .book-card-plain .book-card-cover {
+    box-shadow: none;
+  }
+  .book-card-plain .book-card-meta {
+    @apply mt-2;
+  }
   .book-card-3d {
     @apply relative w-full transition-transform duration-200;
   }
