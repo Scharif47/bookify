@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { IBook, Messages } from "@/types";
 import { ASSISTANT_ID, DEFAULT_VOICE, VOICE_SETTINGS } from "@/lib/constants";
-import { startVoiceSession } from "@/lib/actions/session.actions";
+import { endVoiceSession, startVoiceSession } from "@/lib/actions/session.actions";
 import Vapi from "@vapi-ai/web";
 import { getVoice } from "@/lib/utils";
 
@@ -181,6 +181,12 @@ export const useVapi = (book: IBook) => {
       });
     } catch (e) {
       console.error("Error starting call:", e);
+      if (sessionIdRef.current) {
+        endVoiceSession(sessionIdRef.current, 0).catch((endErr) =>
+          console.error("Failed to rollback voice session after start failure:", endErr),
+        );
+        sessionIdRef.current = null;
+      }
       setStatus("idle");
       setLimitError("Failed to start session. Please try again.");
     }

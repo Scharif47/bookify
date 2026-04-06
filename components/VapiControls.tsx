@@ -34,7 +34,8 @@ function CoverWithMic({
       )}
 
       <button
-        aria-label={isActive ? "Stop speaking" : "Start speaking"}
+        aria-label={isActive ? "Stop voice assistant" : "Start voice assistant"}
+        title={isActive ? "Stop voice assistant" : "Start voice assistant"}
         onClick={isActive ? stop : start}
         disabled={status === "connecting" || status === "starting"}
         className="vapi-mic-btn bg-white rounded-full flex items-center justify-center shadow z-30"
