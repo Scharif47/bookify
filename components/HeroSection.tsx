@@ -25,9 +25,10 @@ const HeroSection = () => {
             <Image
               src="/assets/hero-illustration.png"
               alt="Vintage books and a globe"
-              width={400}
-              height={400}
+              width={491}
+              height={352}
               className="object-contain"
+              style={{ width: "100%", height: "auto" }}
             />
           </div>
 
@@ -36,14 +37,15 @@ const HeroSection = () => {
             <Image
               src="/assets/hero-illustration.png"
               alt="Vintage books and a globe"
-              width={300}
-              height={300}
+              width={491}
+              height={352}
               className="object-contain"
+              style={{ width: "100%", height: "auto" }}
             />
           </div>
 
           {/* Right Part */}
-          <div className="library-steps-card min-w-[260px] max-w-[280px] z-10 shadow-soft-md">
+          <div className="library-steps-card min-w-65 max-w-70 z-10 shadow-soft-md">
             <ul className="space-y-6">
               <li className="library-step-item">
                 <div className="w-10 h-10 min-w-10 min-h-10 rounded-full border border-gray-300 flex items-center justify-center font-medium text-lg">

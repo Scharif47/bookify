@@ -57,7 +57,7 @@ const STATUS_LABELS: Record<CallStatus, string> = {
 };
 
 const VapiControls = ({ book }: { book: IBook }) => {
-  const { status, messages, currentMessage, currentUserMessage, duration, limitError, isActive, start, stop } =
+  const { status, messages, currentMessage, currentUserMessage, duration, limitError, maxDurationMinutes, isActive, start, stop } =
     useVapi(book);
 
   return (
@@ -89,7 +89,7 @@ const VapiControls = ({ book }: { book: IBook }) => {
             </div>
 
             <div className="vapi-status-indicator bg-white rounded-full px-3 py-1 text-sm">
-              {formatDuration(duration)}/15:00
+              {formatDuration(duration)}/{maxDurationMinutes === null ? "--:--" : formatDuration(maxDurationMinutes * 60)}
             </div>
           </div>
 

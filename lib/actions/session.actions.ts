@@ -3,14 +3,38 @@
 import { EndSessionResult, StartSessionResult } from "@/types";
 import { connectToDatabase } from "@/database/mongoose";
 import VoiceSession from "@/database/models/voice-session.model";
+import { auth } from "@clerk/nextjs/server";
+import { getUserPlan } from "@/lib/subscription.server";
+import { PLAN_LIMITS, getCurrentBillingPeriodStart } from "@/lib/subscription-constants";
 
 export const startVoiceSession = async (clerkId: string, bookId: string): Promise<StartSessionResult> => {
   try {
     await connectToDatabase();
 
-    // TODO: Enforce session limits once plans are implemented
-    const { getCurrentBillingPeriodStart } = await import("@/lib/subscription-constants");
+    const { userId } = await auth();
+
+    if (!userId || userId !== clerkId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const plan = await getUserPlan();
+    const limits = PLAN_LIMITS[plan];
     const billingPeriodStart = getCurrentBillingPeriodStart();
+
+    if (limits.maxSessionsPerMonth !== Infinity) {
+      const sessionCount = await VoiceSession.countDocuments({
+        clerkId,
+        billingPeriodStart,
+      });
+
+      if (sessionCount >= limits.maxSessionsPerMonth) {
+        return {
+          success: false,
+          error: `You have reached the monthly session limit for your ${plan} plan (${limits.maxSessionsPerMonth} sessions). Please upgrade to continue.`,
+          isBillingError: true,
+        };
+      }
+    }
 
     const session = await VoiceSession.create({
       clerkId,
@@ -23,6 +47,7 @@ export const startVoiceSession = async (clerkId: string, bookId: string): Promis
     return {
       success: true,
       sessionId: session._id.toString(),
+      maxDurationMinutes: limits.maxDurationPerSession,
     };
   } catch (e) {
     console.error("Error starting voice session", e);

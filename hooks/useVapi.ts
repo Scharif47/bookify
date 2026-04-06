@@ -8,14 +8,6 @@ import { getVoice } from "@/lib/utils";
 
 export type CallStatus = "idle" | "connecting" | "starting" | "listening" | "thinking" | "speaking";
 
-const useLatestRef = <T>(value: T) => {
-  const ref = useRef(value);
-  useEffect(() => {
-    ref.current = value;
-  }, [value]);
-  return ref;
-};
-
 const VAPI_API_KEY = process.env.NEXT_PUBLIC_VAPI_KEY;
 let vapi: InstanceType<typeof Vapi>;
 
@@ -31,7 +23,6 @@ function getVapi() {
 
 export const useVapi = (book: IBook) => {
   const { userId } = useAuth();
-  // TODO: Implement limits
 
   const [status, setStatus] = useState<CallStatus>("idle");
   const [messages, setMessages] = useState<Messages[]>([]);
@@ -39,16 +30,15 @@ export const useVapi = (book: IBook) => {
   const [currentUserMessage, setCurrentUserMessage] = useState("");
   const [duration, setDuration] = useState(0);
   const [limitError, setLimitError] = useState<string | null>(null);
+  const [maxDurationMinutes, setMaxDurationMinutes] = useState<number | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const isStoppingRef = useRef<boolean>(false);
+  const maxDurationMinutesRef = useRef<number | null>(null);
 
-  const bookRef = useLatestRef(book);
-  const durationRef = useLatestRef(duration);
   const voice = book.persona || DEFAULT_VOICE;
-
   const isActive = status === "listening" || status === "thinking" || status === "speaking" || status === "starting";
 
   useEffect(() => {
@@ -58,9 +48,31 @@ export const useVapi = (book: IBook) => {
       isStoppingRef.current = false;
       setStatus("listening");
       startTimeRef.current = Date.now();
+
       timerRef.current = setInterval(() => {
-        if (startTimeRef.current) {
-          setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+        if (startTimeRef.current === null) return;
+
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        setDuration(elapsed);
+
+        const limitSeconds =
+          maxDurationMinutesRef.current === null ? null : maxDurationMinutesRef.current * 60;
+
+        if (limitSeconds !== null && elapsed >= limitSeconds) {
+          clearInterval(timerRef.current!);
+          timerRef.current = null;
+          isStoppingRef.current = true;
+
+          if (sessionIdRef.current) {
+            endVoiceSession(sessionIdRef.current, elapsed).catch(console.error);
+            sessionIdRef.current = null;
+          }
+
+          setStatus("idle");
+          setCurrentMessage("");
+          setCurrentUserMessage("");
+          setLimitError("Session time limit reached. Upgrade your plan for longer sessions.");
+          getVapi().stop();
         }
       }, 1000);
     };
@@ -68,20 +80,31 @@ export const useVapi = (book: IBook) => {
     const onCallEnd = () => {
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
-      if (!isStoppingRef.current) {
-        setStatus("idle");
-        setCurrentMessage("");
-        setCurrentUserMessage("");
+
+      if (isStoppingRef.current) {
+        isStoppingRef.current = false;
+        return;
       }
-      isStoppingRef.current = false;
+
+      // Unexpected end (network drop, remote hang-up, etc.)
+      if (sessionIdRef.current && startTimeRef.current) {
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        endVoiceSession(sessionIdRef.current, elapsed).catch(console.error);
+        sessionIdRef.current = null;
+      }
+      setStatus("idle");
+      setCurrentMessage("");
+      setCurrentUserMessage("");
     };
 
     const onSpeechStart = () => {
-      if (!isStoppingRef.current) setStatus("listening");
+      if (isStoppingRef.current) return;
+      setStatus("listening");
     };
 
     const onSpeechEnd = () => {
-      if (!isStoppingRef.current) setStatus("thinking");
+      if (isStoppingRef.current) return;
+      setStatus("thinking");
     };
 
     const onMessage = (message: Record<string, unknown>) => {
@@ -111,7 +134,8 @@ export const useVapi = (book: IBook) => {
           setCurrentMessage("");
           setStatus("listening");
           setMessages((prev) => {
-            const isDuplicate = prev.length > 0 && prev.at(-1)!.role === "assistant" && prev.at(-1)!.content === text;
+            const isDuplicate =
+              prev.length > 0 && prev.at(-1)!.role === "assistant" && prev.at(-1)!.content === text;
             return isDuplicate ? prev : [...prev, { role: "assistant", content: text }];
           });
         }
@@ -120,10 +144,9 @@ export const useVapi = (book: IBook) => {
 
     const onError = (error: unknown) => {
       console.error("VAPI error:", error);
-      if (!isStoppingRef.current) {
-        setStatus("idle");
-        setLimitError("Voice connection error. Please try again.");
-      }
+      if (isStoppingRef.current) return;
+      setStatus("idle");
+      setLimitError("Voice connection error. Please try again.");
     };
 
     vapiInstance.on("call-start", onCallStart);
@@ -159,6 +182,8 @@ export const useVapi = (book: IBook) => {
       }
 
       sessionIdRef.current = result.sessionId || null;
+      maxDurationMinutesRef.current = result.maxDurationMinutes ?? null;
+      setMaxDurationMinutes(result.maxDurationMinutes ?? null);
 
       const firstMessage = `Hey, nice to meet you. Quick question before we dive in: have you actually read ${book.title} yet or are we starting fresh?`;
 
@@ -194,9 +219,21 @@ export const useVapi = (book: IBook) => {
 
   const stop = async () => {
     isStoppingRef.current = true;
+
+    if (sessionIdRef.current && startTimeRef.current) {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      endVoiceSession(sessionIdRef.current, elapsed).catch(console.error);
+      sessionIdRef.current = null;
+    }
+
     await getVapi().stop();
+
+    setStatus("idle");
+    setCurrentMessage("");
+    setCurrentUserMessage("");
   };
-  const clearErrors = async () => {};
+
+  const clearErrors = () => setLimitError(null);
 
   return {
     status,
@@ -205,6 +242,7 @@ export const useVapi = (book: IBook) => {
     currentUserMessage,
     duration,
     limitError,
+    maxDurationMinutes,
     isActive,
     start,
     stop,
