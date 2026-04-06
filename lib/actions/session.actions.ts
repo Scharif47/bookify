@@ -1,8 +1,9 @@
 "use server";
 
-import { EndSessionResult, StartSessionResult } from "@/types";
+import { EndSessionResult, Messages, StartSessionResult } from "@/types";
 import { connectToDatabase } from "@/database/mongoose";
 import VoiceSession from "@/database/models/voice-session.model";
+import BookTranscript from "@/database/models/book-transcript.model";
 import { auth } from "@clerk/nextjs/server";
 import { getUserPlan } from "@/lib/subscription.server";
 import { PLAN_LIMITS, getCurrentBillingPeriodStart } from "@/lib/subscription-constants";
@@ -52,6 +53,48 @@ export const startVoiceSession = async (clerkId: string, bookId: string): Promis
   } catch (e) {
     console.error("Error starting voice session", e);
     return { success: false, error: "Failed to start voice session. Please try again later." };
+  }
+};
+
+export const getBookTranscript = async (bookId: string): Promise<Messages[]> => {
+  try {
+    await connectToDatabase();
+    const { userId } = await auth();
+    if (!userId) return [];
+
+    const transcript = await BookTranscript.findOne({ clerkId: userId, bookId }).lean();
+    return (transcript?.messages ?? []).map(({ role, content }) => ({ role, content }));
+  } catch (e) {
+    console.error("Error loading transcript", e);
+    return [];
+  }
+};
+
+export const saveBookTranscript = async (bookId: string, messages: Messages[]): Promise<void> => {
+  try {
+    await connectToDatabase();
+    const { userId } = await auth();
+    if (!userId || messages.length === 0) return;
+
+    await BookTranscript.findOneAndUpdate(
+      { clerkId: userId, bookId },
+      { messages },
+      { upsert: true, new: true },
+    );
+  } catch (e) {
+    console.error("Error saving transcript", e);
+  }
+};
+
+export const clearBookTranscript = async (bookId: string): Promise<void> => {
+  try {
+    await connectToDatabase();
+    const { userId } = await auth();
+    if (!userId) return;
+
+    await BookTranscript.deleteOne({ clerkId: userId, bookId });
+  } catch (e) {
+    console.error("Error clearing transcript", e);
   }
 };
 

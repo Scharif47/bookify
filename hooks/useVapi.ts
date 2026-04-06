@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { IBook, Messages } from "@/types";
 import { ASSISTANT_ID, DEFAULT_VOICE, VOICE_SETTINGS } from "@/lib/constants";
-import { endVoiceSession, startVoiceSession } from "@/lib/actions/session.actions";
+import { clearBookTranscript, endVoiceSession, getBookTranscript, saveBookTranscript, startVoiceSession } from "@/lib/actions/session.actions";
 import Vapi from "@vapi-ai/web";
 import { getVoice } from "@/lib/utils";
 
@@ -21,6 +21,10 @@ function getVapi() {
   return vapi;
 }
 
+function buildResumeFirstMessage(bookTitle: string): string {
+  return `Welcome back! Let's pick up our conversation about "${bookTitle}" right where we left off.`;
+}
+
 export const useVapi = (book: IBook) => {
   const { userId } = useAuth();
 
@@ -37,9 +41,22 @@ export const useVapi = (book: IBook) => {
   const sessionIdRef = useRef<string | null>(null);
   const isStoppingRef = useRef<boolean>(false);
   const maxDurationMinutesRef = useRef<number | null>(null);
+  const messagesRef = useRef<Messages[]>([]);
 
   const voice = book.persona || DEFAULT_VOICE;
   const isActive = status === "listening" || status === "thinking" || status === "speaking" || status === "starting";
+
+  // Keep messagesRef in sync so event handlers always see the latest messages
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Load persisted transcript on mount
+  useEffect(() => {
+    getBookTranscript(book._id).then((saved) => {
+      if (saved.length > 0) setMessages(saved);
+    });
+  }, [book._id]);
 
   useEffect(() => {
     const vapiInstance = getVapi();
@@ -68,6 +85,7 @@ export const useVapi = (book: IBook) => {
             sessionIdRef.current = null;
           }
 
+          saveBookTranscript(book._id, messagesRef.current).catch(console.error);
           setStatus("idle");
           setCurrentMessage("");
           setCurrentUserMessage("");
@@ -92,6 +110,7 @@ export const useVapi = (book: IBook) => {
         endVoiceSession(sessionIdRef.current, elapsed).catch(console.error);
         sessionIdRef.current = null;
       }
+      saveBookTranscript(book._id, messagesRef.current).catch(console.error);
       setStatus("idle");
       setCurrentMessage("");
       setCurrentUserMessage("");
@@ -185,7 +204,10 @@ export const useVapi = (book: IBook) => {
       maxDurationMinutesRef.current = result.maxDurationMinutes ?? null;
       setMaxDurationMinutes(result.maxDurationMinutes ?? null);
 
-      const firstMessage = `Hey, nice to meet you. Quick question before we dive in: have you actually read ${book.title} yet or are we starting fresh?`;
+      const isResuming = messages.length > 0;
+      const firstMessage = isResuming
+        ? buildResumeFirstMessage(book.title)
+        : `Hey, nice to meet you. Quick question before we dive in: have you actually read ${book.title} yet or are we starting fresh?`;
 
       await getVapi().start(ASSISTANT_ID, {
         firstMessage,
@@ -228,12 +250,19 @@ export const useVapi = (book: IBook) => {
 
     await getVapi().stop();
 
+    saveBookTranscript(book._id, messagesRef.current).catch(console.error);
     setStatus("idle");
     setCurrentMessage("");
     setCurrentUserMessage("");
   };
 
   const clearErrors = () => setLimitError(null);
+
+  const clearTranscript = async () => {
+    await clearBookTranscript(book._id);
+    setMessages([]);
+    messagesRef.current = [];
+  };
 
   return {
     status,
@@ -247,6 +276,7 @@ export const useVapi = (book: IBook) => {
     start,
     stop,
     clearErrors,
+    clearTranscript,
   };
 };
 

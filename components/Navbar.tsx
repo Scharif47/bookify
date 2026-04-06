@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Show, SignInButton, UserButton, useUser } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton, useClerk, useUser } from "@clerk/nextjs";
 
 const navItems = [
   { label: "Library", href: "/" },
@@ -17,6 +17,7 @@ import React from "react";
 const Navbar = () => {
   const pathName = usePathname();
   const { user } = useUser();
+  const { openUserProfile } = useClerk();
   const [scrolled, setScrolled] = React.useState(false);
 
   React.useEffect(() => {
@@ -59,15 +60,15 @@ const Navbar = () => {
 
           <div className="flex items-center gap-4">
             <Show when="signed-out">
-              <SignInButton />
+              <SignInButton><button className="cursor-pointer">Sign in</button></SignInButton>
             </Show>
             <Show when="signed-in">
-              <div className="nav-user-link">
+              <div className="flex items-center gap-2">
                 <UserButton />
                 {user?.firstName && (
-                  <Link href="/subscriptions" className="nav-user-name">
+                  <button onClick={() => openUserProfile()} className="nav-user-name cursor-pointer bg-transparent border-none p-0">
                     {user.firstName}
-                  </Link>
+                  </button>
                 )}
               </div>
             </Show>

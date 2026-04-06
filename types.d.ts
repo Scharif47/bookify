@@ -38,6 +38,13 @@ export interface IBookSegment extends Document {
   updatedAt: Date;
 }
 
+export interface IBookTranscript extends Document {
+  clerkId: string;
+  bookId: Types.ObjectId;
+  messages: Messages[];
+  updatedAt: Date;
+}
+
 export interface IVoiceSession extends Document {
   _id: string;
   clerkId: string;

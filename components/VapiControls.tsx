@@ -1,5 +1,5 @@
 "use client";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Trash2 } from "lucide-react";
 import useVapi, { CallStatus } from "@/hooks/useVapi";
 import Transcript from "@/components/Transcript";
 import { IBook } from "@/types";
@@ -41,7 +41,7 @@ function CoverWithMic({
         className="vapi-mic-btn bg-white rounded-full flex items-center justify-center shadow z-30"
         style={{ position: "absolute", width: 44, height: 44, right: -12, bottom: -12 }}
       >
-        {isActive ? <Mic className="text-[#212a3b]" /> : <MicOff className="text-[#212a3b]" />}
+        {isActive ? <MicOff className="text-[#212a3b]" /> : <Mic className="text-[#212a3b]" />}
       </button>
     </div>
   );
@@ -57,7 +57,7 @@ const STATUS_LABELS: Record<CallStatus, string> = {
 };
 
 const VapiControls = ({ book }: { book: IBook }) => {
-  const { status, messages, currentMessage, currentUserMessage, duration, limitError, maxDurationMinutes, isActive, start, stop } =
+  const { status, messages, currentMessage, currentUserMessage, duration, limitError, maxDurationMinutes, isActive, start, stop, clearTranscript } =
     useVapi(book);
 
   return (
@@ -97,7 +97,18 @@ const VapiControls = ({ book }: { book: IBook }) => {
         </div>
       </div>
 
-      <div className="transcript-container min-h-100 w-full">
+      <div className="w-full flex flex-col gap-3">
+        {messages.length > 0 && !isActive && (
+          <div className="flex justify-end">
+            <button
+              onClick={clearTranscript}
+              className="flex cursor-pointer items-center gap-1.5 text-sm text-[#374151] hover:text-red-600 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear conversation
+            </button>
+          </div>
+        )}
         <Transcript messages={messages} currentMessage={currentMessage} currentUserMessage={currentUserMessage} />
       </div>
     </div>
