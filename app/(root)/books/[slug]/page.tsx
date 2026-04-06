@@ -21,9 +21,7 @@ export default async function BookDetailsPage({ params }: { readonly params: Pro
   return (
     <div className="book-page-container relative min-h-screen flex flex-col items-center py-12">
       <Link href="/" className="back-btn-floating">
-        <div className="w-12 h-12 bg-white rounded-full border shadow flex items-center justify-center">
-          <ArrowLeft className="size-6 text-[#212a3b]" />
-        </div>
+        <ArrowLeft className="size-5 sm:size-6 text-[#212a3b]" />
       </Link>
 
       <VapiControls book={book} />
